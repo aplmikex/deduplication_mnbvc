@@ -17,11 +17,6 @@ def get_minhash_values(line, num_perm=128):
     return m
 
 
-
-
-
-
-
 # 计算一个长为32的minhash值
 def from_txt_to_json(file_path, num_perm=32):
     hashs = set()
@@ -56,12 +51,14 @@ def run_process(file_path_queue, count, lock, dst_dir):
     lock.acquire()
     last_file_path = os.path.join(os.getcwd(), dst_dir, str(count.value) +'.jsonl')
     count.value += 1
-    print(count.value)
     lock.release()
 
     file_to_write = jsonlines.open(last_file_path, mode='w')
 
+    count = 0
+
     while not file_path_queue.empty():
+        count += 1
         file_path = file_path_queue.get()
 
         one_json = from_txt_to_json(file_path)
@@ -70,6 +67,9 @@ def run_process(file_path_queue, count, lock, dst_dir):
         
         if os.path.getsize(last_file_path) >= max_size:
             file_to_write.close()
+            print('File {} is full.'.format(last_file_path))
+            print('Now there are {} files.'.format(count))
+            count = 0
             lock.acquire()
             last_file_path = os.path.join(os.getcwd(), dst_dir, str(count.value) +'.jsonl')
             count.value += 1
@@ -105,8 +105,5 @@ def convert(src_dir, src='txt', dst='jsonl', dst_dir='converted/', n_process=4):
     for p in processes:
         p.join()
 
-
-if __name__ == '__main__':
-    convert('/home/xiang/文档/20230124', n_process=multiprocessing.cpu_count())
 
 
