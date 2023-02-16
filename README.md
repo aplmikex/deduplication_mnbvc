@@ -34,6 +34,6 @@ if __name__ == '__main__':
 
 #### 测试环境说明（开发测试用机):
 
-* Lenovo 拯救者R7000 R7 4800h,，内存:16 GB,，硬盘:1T,，系统版本:ubuntu 2004
+* Lenovo 拯救者R7000 R7 4800h，内存:16 GB，硬盘:1T，系统版本:ubuntu 2004
 * 使用默认参数，windows_size=5，n_process=15
 
