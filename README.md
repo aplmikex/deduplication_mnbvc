@@ -21,13 +21,16 @@
 #### 完整使用范例
 
 ```python
-from de_duplication import remove_duplicates
-from convert import convert
-import multiprocessing
+python convert.py --src_dir /home/xiang/文档/20230124 --dst_dir converted/ --n_process 4 --threshold 0.95
+```
 
-if __name__ == '__main__':
-    convert('/home/xiang/文档/20230124', dst_dir='converted/', n_process=multiprocessing.cpu_count()-1)
-    remove_duplicates('converted/', n_process=multiprocessing.cpu_count()-1, windows_size=5)
+
+
+#### 测试结果
+
+```
+python convert.py --src_dir /home/xiang/文档/20230124 --dst_dir converted/ --n_process 4 --threshold 0.95                                                        ⏎
+9%|███████████▍                                                                          | 3267/34674 [00:40<04:35, 114.04it/s]
 ```
 
 
@@ -36,4 +39,18 @@ if __name__ == '__main__':
 
 * Lenovo 拯救者R7000 R7 4800h，内存:16 GB，硬盘:1T，系统版本:ubuntu 2004
 * 使用默认参数，windows_size=5，n_process=15
+
+
+
+**`main.py`**
+
+```python
+from de_duplication import remove_duplicates
+from convert import convert
+import multiprocessing
+
+if __name__ == '__main__':
+    convert('/home/xiang/文档/20230124', dst_dir='converted/', n_process=multiprocessing.cpu_count()-1)
+    remove_duplicates('converted/', n_process=multiprocessing.cpu_count()-1, windows_size=5)
+```
 

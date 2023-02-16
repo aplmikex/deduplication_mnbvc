@@ -7,6 +7,7 @@ max_size = 500 * 1024 * 1024
 
 # 递归读取文件夹下所有文件
 def get_all_files(dir_path, legal_file_type=['.txt']):
+    file_nums = 0
     file_path_queue = multiprocessing.Queue()
     for root, _, files in os.walk(dir_path):
         for file in files:
@@ -14,7 +15,8 @@ def get_all_files(dir_path, legal_file_type=['.txt']):
                 continue
             file_path = os.path.join(root, file)
             file_path_queue.put(file_path)
-    return file_path_queue
+            file_nums += 1
+    return file_path_queue, file_nums
 
 def number_to_string(hashvalues, str_encode=str_encode, length_each_number=6):
     '''

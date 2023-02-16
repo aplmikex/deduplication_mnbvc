@@ -6,7 +6,7 @@ from multiprocessing import Process, Queue
 import multiprocessing
 import tempfile
 import shutil
-from datasketch import MinHash, MinHashLSH
+# from datasketch import MinHash, MinHashLSH
 
 
 # 检查文件是否有重复，windows_size是窗口大小，对滑窗内所有hash求和，如果有重复，就将滑窗内的所有行都标记为重复
