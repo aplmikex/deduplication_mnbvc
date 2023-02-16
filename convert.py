@@ -83,7 +83,7 @@ def write_jsonl(json_to_write_queue, processes, dst_dir):
                     last_file.close()
                     count += 1
                     last_file = jsonlines.open(os.path.join(dst_dir, str(count) + '.jsonl'), mode='w')
-        else:96
+        else:
             has_alive = False
             for p in processes:
                 if p.is_alive():
