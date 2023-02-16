@@ -30,7 +30,7 @@ python convert.py --src_dir /home/xiang/文档/20230124 --dst_dir converted/ --n
 
 ```
 python convert.py --src_dir /home/xiang/文档/20230124 --dst_dir converted/ --n_process 4 --threshold 0.95                                                        ⏎
-9%|███████████▍                                                                          | 3267/34674 [00:40<04:35, 114.04it/s]
+50%|█████████████████████████████████████████████████████████████▏                                                            | 17384/34674 [03:30<03:06, 92.81it/s]
 ```
 
 
