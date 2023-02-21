@@ -29,15 +29,15 @@ def from_txt_to_json(file_path, threshold):
                 continue
             # 计算每一行的md5值
             md5 = hashlib.md5(line.encode()).hexdigest()
-            # 将md5值添加到set中，用于去重
-            hashs.add(md5)
             # 将每一行内容添加到json中
             file_json['段落'].append({'行号': line_number,
-                                    '是否重复': False,
+                                    '是否重复': md5 in hashs,
                                     '是否跨文件重复': False,
                                     'md5': md5,
                                     '内容': line
                                     })
+            # 将md5值添加到set中，用于去重
+            hashs.add(md5)
     # 计算段落数和去重段落数
     file_json['段落数'] = len(file_json['段落'])
     file_json['去重段落数'] = len(hashs)
