@@ -1,7 +1,7 @@
 ### 项目描述
 本项目的主要目的是：
 
-1. 将大量文本文件转换为格式化的、易于查询的jsonl格式数据。
+1. 将大量文本文件转换为格式化的、易于查询的数据。
 
 2. 快速标注同一文件内是否有明显重复的情况。
 
@@ -89,6 +89,42 @@
 - `run_process(file_path_queue, json_to_write_queue, threshold)`：多进程执行文件转换任务。
 - `write_jsonl(json_to_write_queue, file_nums, dst_dir)`：将处理后的json数据写入到目标文件中。
 - `convert(src_dir, src='txt', dst='jsonl', dst_dir='converted/', n_process=4, threshold=0.95)`：整个文件转换的主要函数。
+
+
+
+### 输出的jsonl格式说明
+
+1. 根据文件内段落的重复率是否高于给定的阈值，将文件分成正常文件和待查文件，其中正常文件数字加jsonl，如`10.jsonl`，而待查文件则是problem_加数字加jsonl，如`problem_7.jsonl`
+
+2. 对于每个jsonl文件，其大小略大于500MiB，这个数值定义在`utils.py`中的`max_size`，可根据需要更改
+
+3. 对于每一个文件，他的json结构层次如下：
+
+    ```python
+    {
+        '文件名': '文件.txt',
+        '是否待查文件': False,
+        '是否重复文件': False,
+        '段落数': 0,
+        '去重段落数': 0,
+        '低质量段落数': 0,
+        '段落': []
+    }
+    ```
+
+    将每一行为一个段落，段落的json结构层次如下：
+
+    ```python
+    {
+        '行号': line_number,
+        '是否重复': False,
+        '是否跨文件重复': False,
+        'md5': md5,
+        '内容': line
+    }
+    ```
+
+    
 
 
 

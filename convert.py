@@ -22,7 +22,7 @@ def from_txt_to_json(file_path, threshold):
     # 读取每一行
     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
         for line_number, line in enumerate(f):
-            # 去除行尾空格
+            # 去除行首尾空格
             line = line.strip()
             # 删除空行
             if len(line) == 0:
