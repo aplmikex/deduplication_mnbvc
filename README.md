@@ -111,6 +111,5 @@
     - Lenovo 拯救者R7000 R7 4800h，内存:16 GB，硬盘:1T，系统版本:ubuntu 2004
     - 使用的[mnbvc](https://github.com/esbatmop/MNBVC)主项目的20230124.zip压缩包，约25.2Gib
     - 使用默认参数，n_process=4，threshold=095
-    - 使用默认参数，n_process=4，threshold=095
     - 转换时间6分34秒，转换后大小39.9Gib
 
