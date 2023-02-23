@@ -59,9 +59,18 @@ def run_process(file_path_queue, json_to_write_queue, threshold):
 
 
 def write_jsonl(json_to_write_queue, file_nums, dst_dir):
+
     # 定义文件名
     file_name = 0
     problem_file_name = 0
+
+    files = os.listdir(dst_dir)
+    for file in files:
+        if file.endswith('.jsonl'):
+            if file.startswith('problem_'):
+                problem_file_name = max(problem_file_name, int(file.split('_')[1].split('.')[0])+1)
+            else:
+                file_name = max(file_name, int(file.split('.')[0])+1)
 
     # 遍历文件数量
     for _ in tqdm.tqdm(range(file_nums)):
