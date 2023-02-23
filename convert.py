@@ -38,6 +38,8 @@ def from_txt_to_json(file_path, threshold):
                                     })
             # 将md5值添加到set中，用于去重
             hashs.add(md5)
+    if len(hashs) == 0:
+        return None
     # 计算段落数和去重段落数
     file_json['段落数'] = len(file_json['段落'])
     file_json['去重段落数'] = len(hashs)
@@ -76,6 +78,8 @@ def write_jsonl(json_to_write_queue, file_nums, dst_dir):
     for _ in tqdm.tqdm(range(file_nums)):
         # 从队列中获取一个json
         one_json = json_to_write_queue.get()
+        if one_json is None:
+            continue
         # 根据是否待查文件，写入不同的文件
         if one_json['是否待查文件']:
             with jsonlines.open(os.path.join(dst_dir, 'problem_' + str(problem_file_name) + '.jsonl'),
