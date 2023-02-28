@@ -6,11 +6,14 @@ import tqdm
 from utils import max_size, get_all_files
 import jsonlines
 import hashlib
-
+import simhash
+from charset_mnbvc import api, constant
 
 def from_txt_to_json(file_path, threshold):
+    file_content = ''
     # 定义json结构
-    file_json = {'文件名': file_path.strip('./'),
+    file_json = {'文件名': os.path.abspath(file_path),
+                 'simhash': '',
                  '是否待查文件': False,
                  '是否重复文件': False,
                  '段落数': 0,
@@ -19,8 +22,11 @@ def from_txt_to_json(file_path, threshold):
                  '段落': []}
     # 定义用于去重的set
     hashs = set()
+    encode = api.get_cn_charset(file_path)
+    if encode not in  constant.ENCODINGS:
+        return None
     # 读取每一行
-    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+    with open(file_path, 'r', encoding=encode, errors='ignore') as f:
         for line_number, line in enumerate(f):
             # 去除行首尾空格
             line = line.strip()
@@ -36,13 +42,17 @@ def from_txt_to_json(file_path, threshold):
                                     'md5': md5,
                                     '内容': line
                                     })
+            if md5 not in hashs:
+                file_content += line
             # 将md5值添加到set中，用于去重
             hashs.add(md5)
+
     if len(hashs) == 0:
         return None
     # 计算段落数和去重段落数
     file_json['段落数'] = len(file_json['段落'])
     file_json['去重段落数'] = len(hashs)
+    file_json['simhash'] = simhash.Simhash(file_content).value
     # 判断是否是待查文件
     if (file_json['去重段落数'] / file_json['段落数']) < threshold:
         file_json['是否待查文件'] = True

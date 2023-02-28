@@ -6,7 +6,14 @@ str_encode = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 max_size = 500 * 1024 * 1024 
 
 # 递归读取文件夹下所有文件
-def get_all_files(dir_path, legal_file_type=['.txt']):
+def get_all_files(dir_path, legal_file_type=['.txt'], return_file_type='queue'):
+    if return_file_type == 'queue':
+        return get_all_files_queue(dir_path, legal_file_type)
+    elif return_file_type == 'list':
+        return get_all_files_list(dir_path, legal_file_type)
+
+
+def get_all_files_queue(dir_path, legal_file_type=['.txt']):
     file_nums = 0
     file_path_queue = multiprocessing.Queue()
     for root, _, files in os.walk(dir_path):
@@ -17,6 +24,18 @@ def get_all_files(dir_path, legal_file_type=['.txt']):
             file_path_queue.put(file_path)
             file_nums += 1
     return file_path_queue, file_nums
+
+
+def get_all_files_list(dir_path, legal_file_type=['.txt']):
+    file_path_list = []
+    for root, _, files in os.walk(dir_path):
+        for file in files:
+            if os.path.splitext(file)[-1] not in legal_file_type:
+                continue
+            file_path = os.path.join(root, file)
+            file_path_list.append(file_path)
+    return file_path_list, len(file_path_list)
+
 
 def number_to_string(hashvalues, str_encode=str_encode, length_each_number=6):
     '''
