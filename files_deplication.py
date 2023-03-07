@@ -90,8 +90,8 @@ if __name__ == '__main__':
     parser.add_argument('--src_dir', type=str, required=True, help="源文件夹路径")
     # 添加可选参数，指定进程数，默认为4
     # parser.add_argument('--n_process', type=int, default=4, help="指定进程数，默认为4")
-    parser.add_argument('--load_simhash_dict', type=str, default='', help="是否加载simhash值，默认为''")
-    parser.add_argument('--save_simhash_dict', type=str, default='', help="是否保存simhash值，默认为''")
+    parser.add_argument('--load_simhash_dict', type=str, default='', help="是否加载simhash值，默认为不加载")
+    parser.add_argument('--save_simhash_dict', type=str, default='', help="是否保存simhash值，默认为不保存")
     # 添加可选参数，指定去重阈值，默认为3
     parser.add_argument('--threshold', type=int, default=3, help="指定去重阈值，默认为3，也就是simhash值相差3以内算相似")
     # 解析参数
