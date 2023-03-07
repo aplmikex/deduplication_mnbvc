@@ -14,6 +14,8 @@ def from_txt_to_json(file_path, threshold):
                  'simhash': 0,
                  '是否待查文件': False,
                  '是否重复文件': False,
+                 '文件大小': os.path.getsize(file_path),
+                 '最长段落长度': 0,
                  '段落数': 0,
                  '去重段落数': 0,
                  '低质量段落数': 0,
@@ -26,6 +28,8 @@ def from_txt_to_json(file_path, threshold):
         for line_number, line in enumerate(f):
             # 去除行首尾空格
             line = line.strip()
+            # 计算最长段落长度
+            file_json['最长段落长度'] = max(file_json['最长段落长度'], len(line))
             # 删除空行
             if len(line) == 0:
                 continue
