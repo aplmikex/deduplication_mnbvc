@@ -67,7 +67,10 @@ def run_process(file_path_queue, json_to_write_queue, threshold):
     # 不断从队列中获取文件路径
     while not file_path_queue.empty():
         # 获取文件路径
-        file_path = file_path_queue.get()
+        try:
+            file_path = file_path_queue.get(timeout=0.2)
+        except:
+            break
         # 将文件转换为json
         one_json = from_txt_to_json(file_path, threshold)
         # 把json写入到队列中
