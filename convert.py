@@ -157,8 +157,8 @@ if __name__ == '__main__':
     parser.add_argument('--dst', type=str, default='jsonl', help="指定目标文件类型，默认为jsonl")
     # 添加可选参数，指定转换后文件存放路径，默认为converted/
     parser.add_argument('--dst_dir', type=str, default='converted/', help="指定转换后文件存放路径，默认为converted/")
-    # 添加可选参数，指定进程数，默认为4
-    parser.add_argument('--n_process', type=int, default=4, help="指定进程数，默认为4")
+    # 添加可选参数，指定进程数，默认为1
+    parser.add_argument('--n_process', type=int, default=1, help="指定进程数，默认为1")
     # 添加可选参数，指定去重阈值，默认为0.95
     parser.add_argument('--threshold', type=float, default=0.95, help="指定去重阈值，默认为0.95")
     # 解析参数
