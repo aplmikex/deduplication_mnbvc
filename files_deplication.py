@@ -69,6 +69,7 @@ def files_deplication(src_dir, threshold, n_process, load_simhash_dict, save_sim
 
 
     poped_keys = []
+    i=0
     for key, one_simhash in path_simhashs:
         if key in poped_keys:
             continue
@@ -81,12 +82,13 @@ def files_deplication(src_dir, threshold, n_process, load_simhash_dict, save_sim
         if len(similar_files) == 1:
             continue
 
-        similar_json = {
+        i+=1
+        similar_json_list = [{
             '来源': key.split(".jsonl")[0]+'.jsonl',
             '文件名': key.split(".jsonl")[1],
+            '重复ID' : i,
             '是否重复文件': False,
-            '相似文件': []
-        }
+        }]
 
         similar_files.remove(key)
 
@@ -94,18 +96,20 @@ def files_deplication(src_dir, threshold, n_process, load_simhash_dict, save_sim
         for similar_file in similar_files:
             split_keys = similar_file.split(".jsonl")
             if len([path_simhash for path_simhash in path_simhashs if path_simhash[0] == similar_file])==1:
-                similar_json['相似文件'].append({
+                similar_json_list.append({
                     '来源': split_keys[0]+'.jsonl',
                     '文件名': split_keys[1],
+                    '重复ID' : i,
                     '是否重复文件': True
                 })
                 poped_keys.append(similar_file)
             else:
                 # 如果有一个相似文件在load的字典中，就不保留当前的文件
-                similar_json['是否重复文件'] = True
+                similar_json_list[0]['是否重复文件'] = True
 
         with jsonlines.open('result.jsonl', mode='a') as file:
-            file.write(similar_json)
+            for one_json in similar_json_list:
+                file.write(one_json)
 
 
     # for file_path in file_path_list:
