@@ -16,7 +16,7 @@ def convert_jsonl_to_csv(src_dir, dst, dst_dir):
 
     with open(os.path.join(dst_dir, dst), 'w', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(('来源', '文件名', 'simhash', 'md5s', '是否重复'))
+        writer.writerow(('来源', '文件名', 'simhash', 'md5s'))
 
     # 获取所有jsonl文件
     file_path_list, file_nums = get_all_files(src_dir, ['.jsonl'], 'list')
@@ -25,7 +25,9 @@ def convert_jsonl_to_csv(src_dir, dst, dst_dir):
             for one_json in reader:
                 with open(os.path.join(dst_dir, dst), 'a', encoding='utf-8') as f:
                     writer = csv.writer(f)
-                    writer.writerow((file_path_list[i], one_json['文件名'], one_json['simhash'], ''.join({one_json['段落'][i]['md5'] for i in range(len(one_json['段落']))}), one_json['是否重复文件']))
+                    row = [file_path_list[i], one_json['文件名'], one_json['simhash']]
+                    row.extend({one_json['段落'][i]['md5'][8:-8] for i in range(len(one_json['段落']))})
+                    writer.writerow(row)
 
 
 

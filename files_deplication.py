@@ -2,126 +2,187 @@ import simhash
 import jsonlines
 import argparse
 import os, tqdm
-from utils import get_all_files
-import pickle
-from multiprocessing import Process, Queue
-import collections
+from utils import get_all_files, jaccard_distance
+import csv
+csv.field_size_limit(100000000)
+import logging
+logger = logging.getLogger('simhash_no_debug')
+logger.setLevel(logging.ERROR)
+from itertools import groupby
+import time
 
-def run_process(file_path_queue, get_index_bucket_queue, threshold):
-    index = simhash.SimhashIndex([], k=threshold)
+def files_deplication_one_csv(src, threshold):
+    """
+    一个csv文件内部两两比较
+    param src: csv文件路径
+    param threshold: simhash的阈值
+    """
+    index = simhash.SimhashIndex([], k=threshold, log=logger)
     path_simhashs = []
-    while not file_path_queue.empty():
-        file_path = file_path_queue.get()
-        with jsonlines.open(file_path) as reader:
-            for one_json in reader:
-                # 获取simhash值
-                one_simhash = simhash.Simhash(one_json['simhash'])
-                path_simhashs.append((file_path+one_json['文件名'], one_simhash))
-                index.add(file_path+one_json['文件名'], one_simhash)
-
-    get_index_bucket_queue.put((index.bucket, path_simhashs))
-
-
-
-
-def files_deplication(src_dir, threshold, n_process, load_simhash_dict, save_simhash_dict):
-    # 认为src_dir是一个文件夹，里面存放着待检测的jsonl文件
-    # 如果不load_simhash_dict，就从头开始计算simhash值，计算src文件内部两两之间的相似度
-    # 如果load_simhash_dict，就从load_simhash_dict中读取simhash值，计算src文件内部两两之间的相似度和src文件与load_simhash_dict中的文件之间的相似度
-
-    # 检查输入参数是否合理
-    assert os.path.exists(src_dir)
-    
-    index = simhash.SimhashIndex([], k=threshold)
-
-    get_index_bucket_queue = Queue()
-    path_simhashs = []
-
-    if load_simhash_dict != '':
-        with open(load_simhash_dict, 'rb') as f:
-            index.bucket = pickle.load(f)
-
-
-    file_path_queue, file_nums = get_all_files(src_dir, legal_file_type=['.jsonl'])
-
-
-
-    processes = []
-    for _ in range(n_process):
-        p = Process(target=run_process, args=(file_path_queue, get_index_bucket_queue, threshold))
-        p.start()
-        processes.append(p)
-
-    for _ in tqdm.tqdm(range(n_process), desc='读取jsonl文件'):
-        return_value = get_index_bucket_queue.get()
-        for key, value in return_value[0].items():
-            index.bucket[key] |= value
-        
-        path_simhashs.extend(return_value[1])
-
-
-    for p in processes:
-        p.join()
-
-    if save_simhash_dict != '':
-        with open(save_simhash_dict, 'wb') as f:
-            pickle.dump(index.bucket, f)
-
+    all_similar_files = []
+    num = 0
+    with open(src, encoding="utf-8") as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        for row in reader:
+            simhash_value = simhash.Simhash(int(row[2]))
+            index.add(row[0]+row[1], simhash_value)
+            path_simhashs.append((row[0]+row[1], simhash_value))
+            num += 1
 
     poped_keys = []
-    i=0
-    for key, one_simhash in path_simhashs:
+    i = 0
+    for _ in tqdm.tqdm(range(num)):
+        key, one_simhash = path_simhashs.pop()
+
         if key in poped_keys:
             continue
         # 获取相似文件
         similar_files = index.get_near_dups(one_simhash)
-
-        # 如果相似文件有在load的字典中的，就对src赶尽杀绝，全标记为重复文件
-        # 如果相似文件都不在load的字典中的，就留下第一个，其他的都标记为重复文件
-
         if len(similar_files) == 1:
             continue
+        i += 1
 
-        i+=1
-        similar_json_list = [{
-            '来源': key.split(".jsonl")[0]+'.jsonl',
-            '文件名': key.split(".jsonl")[1],
-            '重复ID' : i,
-            '是否重复文件': False,
-        }]
+        poped_keys.extend([similar_file for similar_file in similar_files])
+        all_similar_files.extend([{
+                'csv文件': src,
+                '来源': similar_file.split(".jsonl")[0]+'.jsonl',
+                '文件名': similar_file.split(".jsonl")[1],
+                '重复ID' : i,
+            } for similar_file in similar_files])
 
-        similar_files.remove(key)
+    return all_similar_files
 
+# 两个csv文件比较
+def files_deplication_two_csv(src1, src2, threshold):
+    """
+    两个csv文件之间比较，我们认为源csv文件不需要与被别人去重
+    param src1: 源csv文件路径
+    param src2: 需要被去重csv文件路径
+    param threshold: simhash的阈值
+    """
+    index = simhash.SimhashIndex([], k=threshold, log=logger)
+    all_similar_files = []
+    file_name_list = []
 
-        for similar_file in similar_files:
-            split_keys = similar_file.split(".jsonl")
-            if len([path_simhash for path_simhash in path_simhashs if path_simhash[0] == similar_file])==1:
-                similar_json_list.append({
-                    '来源': split_keys[0]+'.jsonl',
-                    '文件名': split_keys[1],
-                    '重复ID' : i,
-                    '是否重复文件': True
+    with open(src1, encoding="utf-8") as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        for row in reader:
+            simhash_value = simhash.Simhash(int(row[2]))
+            index.add(row[0]+row[1], simhash_value)
+            file_name_list.append(row[1])
+
+    i = 0
+    start = time.time() 
+    with open(src2, encoding="utf-8") as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        for row in reader:
+            
+            simhash_value = simhash.Simhash(int(row[2]))
+            similar_files = index.get_near_dups(simhash_value)
+            if len(similar_files) == 0:
+                continue
+            i += 1
+            all_similar_files.append({
+                'csv文件': src2,
+                '来源': row[0],
+                '文件名': row[1],
+                '重复ID' : i,
+                'md5s': {int(md5, 16) for md5 in row[3:]}
                 })
-                poped_keys.append(similar_file)
-            else:
-                # 如果有一个相似文件在load的字典中，就不保留当前的文件
-                similar_json_list[0]['是否重复文件'] = True
+            all_similar_files.append({
+                'csv文件': src1,
+                '来源': similar_files[0].split(".jsonl")[0]+'.jsonl',
+                '文件名':   similar_files[0].split(".jsonl")[1],
+                '重复ID' : i,
+                })
 
-        with jsonlines.open('result.jsonl', mode='a') as file:
-            for one_json in similar_json_list:
-                file.write(one_json)
+    end = time.time()
+    print(end-start)
+    return all_similar_files
+
+def similar_files_check(all_similar_files, jaccard_threshold, csv_src):
+    """
+    检查相似文件是否真的相似
+    param all_similar_files: 所有相似文件
+    param jaccard_threshold: jaccard距离阈值
+    param csv_src: 需要再次读取的csv文件路径
+    """
+    print(len(all_similar_files))
+    groupby_similar_files_by_csv = groupby(sorted(all_similar_files, key=lambda x: x['csv文件']), key=lambda x: x['csv文件'])
+    all_similar_files_with_md5s = []
+    for one_csv_src, group_files_by_csv in groupby_similar_files_by_csv:
+        group_files_by_csv = list(group_files_by_csv)
+        if one_csv_src != csv_src:
+            all_similar_files_with_md5s.extend(group_files_by_csv)
+        else:
+            file_name_list = [file['文件名'] for file in group_files_by_csv]
+            
+            with open(csv_src, encoding="utf-8") as csvfile:
+                reader = csv.reader(csvfile)
+                next(reader)
+                bar = tqdm.tqdm(total=len(file_name_list))
+                for row in reader:
+                    if row[1] in file_name_list:
+                        bar.update(1)
+                        pos = file_name_list.index(row[1])
+                        group_files_by_csv[pos]['md5s'] = {int(md5, 16) for md5 in row[3:]}
+                        all_similar_files_with_md5s.append(group_files_by_csv[pos])
+
+                bar.close()
 
 
-    # for file_path in file_path_list:
-    #     if file_path in result_dict:
-    #         with jsonlines.open(file_path) as reader:
-    #             with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp:
-    #                 for one_json in reader:
-    #                     if one_json['文件名'] in result_dict[file_path].keys():
-    #                         one_json['是否重复文件'] = True
-    #                     jsonlines.Writer(temp).write(one_json)
-    #         shutil.move(temp.name, file_path)
+    groupby_all_similar_files = groupby(sorted(all_similar_files_with_md5s, key=lambda x: x['重复ID']), key=lambda x: x['重复ID'])
+    deplicate_files = []
+    doubtful_deplicate_files = []
 
+    for key, group in groupby_all_similar_files:
+        doubtful = False
+        group = list(group)
+        for i in range(len(group)):
+            for j in range(i+1, len(group)):
+                if jaccard_distance(group[i]['md5s'], group[j]['md5s']) <= jaccard_threshold:
+                    print(group[i]['文件名'], group[j]['文件名'], jaccard_distance(group[i]['md5s'], group[j]['md5s']))
+                    doubtful = True
+                    break
+
+        if doubtful:
+            doubtful_deplicate_files.extend([{k: v for k, v in d.items() if k != 'md5s'} for d in group])
+        else:
+            deplicate_files.extend([{k: v for k, v in d.items() if k != 'md5s'} for d in group])
+
+    return deplicate_files, doubtful_deplicate_files
+
+
+
+def files_deplication(srcs, simhash_threshold, jaccard_threshold, step, similarfiles_output):
+    """
+    将多个csv中的文件进行去重
+    :param src: csv文件路径
+    :param threshold: 指定去重阈值，默认为8，也就是simhash值相差8以内算相似
+    :param step: 1: 对每个csv文件内部进行去重，2: 对多个csv文件之间进行去重
+    :return:
+    """
+    assert step in [1, 2]
+    for src in srcs:
+        assert os.path.exists(src)
+
+    if step == 1:
+        for src in srcs:
+            all_similar_files = files_deplication_one_csv(src, simhash_threshold)
+            deplicate_files, doubtful_deplicate_files = similar_files_check(all_similar_files, jaccard_threshold, src)
+
+            with open(similarfiles_output, 'a', encoding='utf-8') as f:
+                jsonlines.Writer(f).write_all(deplicate_files)
+    else:
+        assert len(srcs) == 2
+        all_similar_files = files_deplication_two_csv(srcs[0], srcs[1], simhash_threshold)
+        deplicate_files, doubtful_deplicate_files = similar_files_check(all_similar_files, jaccard_threshold, srcs[0])
+
+        with open(similarfiles_output, 'a', encoding='utf-8') as f:
+            jsonlines.Writer(f).write_all(deplicate_files)
 
 
 
@@ -130,18 +191,19 @@ if __name__ == '__main__':
     # 设置参数解析器
     parser = argparse.ArgumentParser()
     # 添加必须指定的参数
-    parser.add_argument('--src_dir', type=str, required=True, help="源文件夹路径")
-    # 添加可选参数，指定进程数，默认为4
-    # parser.add_argument('--n_process', type=int, default=4, help="指定进程数，默认为4")
-    parser.add_argument('--load_simhash_dict', type=str, default='', help="是否加载simhash值，默认为不加载")
-    parser.add_argument('--save_simhash_dict', type=str, default='', help="是否保存simhash值，默认为不保存")
+    parser.add_argument('--srcs', nargs='+', help="请输入csv文件")
 
-    # 添加可选参数，指定进程数，默认为4
-    parser.add_argument('--n_process', type=int, default=4, help="指定进程数，默认为4")
+    parser.add_argument('--step', type=int, required=True, help="step=1: 对每个csv文件内部进行去重，step=2: 对两个csv文件之间进行去重")
 
-    # 添加可选参数，指定去重阈值，默认为3
-    parser.add_argument('--threshold', type=int, default=5, help="指定去重阈值，默认为5，也就是simhash值相差3以内算相似")
+    # 添加可选参数，指定去重阈值
+    parser.add_argument('--simhash_threshold', type=int, default=8, help="指定simhash去重阈值，默认为8")
+
+    # 添加可选参数，指定去重阈值
+    parser.add_argument('--jaccard_threshold', type=float, default=0.85, help="指定jaccard二次检验阈值，默认为0.85")
+
+    parser.add_argument('--similarfiles_output', required=True, help="输出相似文件的csv文件路径")
+
     # 解析参数
     args = parser.parse_args()
     # 调用convert函数
-    files_deplication(args.src_dir, args.threshold, args.n_process, args.load_simhash_dict, args.save_simhash_dict)
+    files_deplication(args.srcs, args.simhash_threshold, args.jaccard_threshold, args.step, args.similarfiles_output)

@@ -34,6 +34,7 @@ def get_all_files_list(dir_path, legal_file_type=['.txt']):
                 continue
             file_path = os.path.join(root, file)
             file_path_list.append(file_path)
+    file_path_list = sorted(file_path_list)
     return file_path_list, len(file_path_list)
 
 
@@ -68,3 +69,11 @@ def string_to_number(encoded_str, str_encode=str_encode, length_each_number=6):
             hashvalues[i] += str_encode.index(encoded_str[i*length_each_number+j]) * (len(str_encode) ** j)
 
     return hashvalues
+
+def jaccard_distance(md5_list1, md5_list2):
+    nominator = md5_list1.intersection(md5_list2)
+    # 求集合 A 和集合 B 的并集
+    denominator = md5_list1.union(md5_list2)
+    # 计算比率
+    similarity = len(nominator)/len(denominator)
+    return similarity
