@@ -7,6 +7,9 @@ from utils import max_size, get_all_files
 import jsonlines
 import hashlib
 import simhash
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def from_txt_to_json(file_path, threshold):
 
@@ -75,7 +78,7 @@ def run_process(file_path_queue, json_to_write_queue, threshold):
         try:
             one_json = from_txt_to_json(file_path, threshold)
         except UnicodeDecodeError:
-            print(f"Error: {file_path} is not encoded in utf-8.")
+            logging.error(f"Error: {file_path} is not encoded in utf-8.")
             json_to_write_queue.put(UnicodeDecodeError)
             exit(-1)
         # 把json写入到队列中
@@ -87,15 +90,10 @@ def write_jsonl(json_to_write_queue, file_nums, dst_dir):
     # 定义文件名
     file_name = 0
     problem_file_name = 0
-
-    files = os.listdir(dst_dir)
-    for file in files:
-        if file.endswith('.jsonl'):
-            if file.startswith('problem_'):
-                problem_file_name = max(problem_file_name, int(file.split('_')[1].split('.')[0])+1)
-            else:
-                file_name = max(file_name, int(file.split('.')[0])+1)
-
+    if os.path.exists(os.path.join(dst_dir, str(file_name) + '.jsonl')):
+        logging.warning('Warning: ' + str(file_name) + '.jsonl' + ' already exists.')
+    if os.path.exists(os.path.join(dst_dir, 'problem_' + str(problem_file_name) + '.jsonl')):
+        logging.warning('Warning: problem_' + str(problem_file_name) + '.jsonl' + ' already exists.')
     # 遍历文件数量
     for _ in tqdm.tqdm(range(file_nums)):
         # 从队列中获取一个json
@@ -112,12 +110,16 @@ def write_jsonl(json_to_write_queue, file_nums, dst_dir):
                 # 如果当前文件大小超过限制，则更换文件名
                 if last_problem_file._fp.tell() > max_size:
                     problem_file_name += 1
+                    if os.path.exists(os.path.join(dst_dir, 'problem_' + str(problem_file_name) + '.jsonl')):
+                        logging.warning('Warning: problem_' + str(problem_file_name) + '.jsonl' + ' already exists.')
         else:
             with jsonlines.open(os.path.join(dst_dir, str(file_name) + '.jsonl'), mode='a') as last_file:
                 last_file.write(one_json)
                 # 如果当前文件大小超过限制，则更换文件名
                 if last_file._fp.tell() > max_size:
                     file_name += 1
+                    if os.path.exists(os.path.join(dst_dir, str(file_name) + '.jsonl')):
+                        logging.warning('Warning: ' + str(file_name) + '.jsonl' + ' already exists.')
     return 0
 
 def convert(src_dir, src='txt', dst='jsonl', dst_dir='converted/', n_process=4, threshold=0.95):
