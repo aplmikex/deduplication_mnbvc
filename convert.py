@@ -72,7 +72,12 @@ def run_process(file_path_queue, json_to_write_queue, threshold):
         except:
             break
         # 将文件转换为json
-        one_json = from_txt_to_json(file_path, threshold)
+        try:
+            one_json = from_txt_to_json(file_path, threshold)
+        except UnicodeDecodeError:
+            print(f"Error: {file_path} is not encoded in utf-8.")
+            json_to_write_queue.put(UnicodeDecodeError)
+            exit(-1)
         # 把json写入到队列中
         json_to_write_queue.put(one_json)
 
@@ -97,6 +102,8 @@ def write_jsonl(json_to_write_queue, file_nums, dst_dir):
         one_json = json_to_write_queue.get()
         if one_json is None:
             continue
+        if one_json == UnicodeDecodeError:
+            return -1
         # 根据是否待查文件，写入不同的文件
         if one_json['是否待查文件']:
             with jsonlines.open(os.path.join(dst_dir, 'problem_' + str(problem_file_name) + '.jsonl'),
@@ -111,7 +118,7 @@ def write_jsonl(json_to_write_queue, file_nums, dst_dir):
                 # 如果当前文件大小超过限制，则更换文件名
                 if last_file._fp.tell() > max_size:
                     file_name += 1
-
+    return 0
 
 def convert(src_dir, src='txt', dst='jsonl', dst_dir='converted/', n_process=4, threshold=0.95):
     # 检查输入参数是否合理
@@ -139,11 +146,14 @@ def convert(src_dir, src='txt', dst='jsonl', dst_dir='converted/', n_process=4, 
         processes.append(p)
 
     # 将json写入文件
-    write_jsonl(json_to_write_queue, file_nums, dst_dir)
+    exit_code = write_jsonl(json_to_write_queue, file_nums, dst_dir)
 
-    # 等待多进程执行完毕
-    for p in processes:
-        p.join()
+    if exit_code == -1:
+        for p in processes:
+            p.terminate()
+    else:
+        for p in processes:
+            p.join()
 
 
 if __name__ == '__main__':
