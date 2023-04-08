@@ -171,8 +171,8 @@ if __name__ == '__main__':
     parser.add_argument('--dst_dir', type=str, default='converted/', help="指定转换后文件存放路径，默认为converted/")
     # 添加可选参数，指定进程数，默认为1
     parser.add_argument('--n_process', type=int, default=1, help="指定进程数，默认为1")
-    # 添加可选参数，指定去重阈值，默认为0.95
-    parser.add_argument('--threshold', type=float, default=0.95, help="指定去重阈值，默认为0.95")
+    # 添加可选参数，指定去重阈值，默认为0.5
+    parser.add_argument('--threshold', type=float, default=0.5, help="指定去重阈值，默认为0.5")
     # 解析参数
     args = parser.parse_args()
     # 调用convert函数
