@@ -6,7 +6,7 @@ import tqdm
 from utils import max_size, get_all_files
 import jsonlines
 import hashlib
-import simhash
+import customSimhash
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -59,7 +59,7 @@ def from_txt_to_json(file_path, threshold):
     file_json['段落数'] = len(file_json['段落'])
     file_json['去重段落数'] = len(hashs)
     # 计算simhash
-    file_json['simhash'] = simhash.Simhash(texts).value
+    file_json['simhash'] = customSimhash.Simhash(texts).value
     # 判断是否是待查文件
     if (file_json['去重段落数'] / file_json['段落数']) < threshold:
         file_json['是否待查文件'] = True

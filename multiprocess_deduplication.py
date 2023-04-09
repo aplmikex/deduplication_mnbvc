@@ -3,7 +3,6 @@ from utils import jaccard_distance, get_all_files
 import tqdm
 import multiprocessing
 import customSimhash
-import time
 import csv
 
 
