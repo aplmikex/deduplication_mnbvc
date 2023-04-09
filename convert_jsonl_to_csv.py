@@ -17,6 +17,7 @@ def convert_jsonl_to_csv(src_dir, dst_dir):
 
     for i in tqdm.tqdm(range(file_nums)):
         with jsonlines.open(file_path_list[i]) as reader:
+            file_path_list[i] = os.path.abspath(file_path_list[i])
             for one_json in reader:
                 file_name = hashlib.md5(file_path_list[i].encode('utf-8')).hexdigest() + hashlib.md5(one_json['文件名'].encode('utf-8')).hexdigest() + '.csv'
                 with open(os.path.join(dst_dir, file_name), 'w', encoding='utf-8') as f:

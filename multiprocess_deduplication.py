@@ -7,7 +7,7 @@ import time
 import csv
 
 
-def deduplication(file_path_list, simhash_threshold, similar_file_queue):
+def deduplication(file_path_list, simhash_threshold, similar_file_queue, flag):
 
     lsh = customSimhash.SimhashIndex([], f=64, k=simhash_threshold)
 
@@ -21,14 +21,18 @@ def deduplication(file_path_list, simhash_threshold, similar_file_queue):
                 similar_file = [file_path_list[i], similar]
                 similar_file_queue.put(similar_file)
     
+    flag.value = True
 
-
-def check_similar_file(similar_file_queue, jaccard_thresold):
+def check_similar_file(similar_file_queue, jaccard_thresold, flag):
     while True:
         try:
-            similar_file = similar_file_queue.get(timeout=1) 
+            similar_file = similar_file_queue.get(timeout=0.2) 
         except:
-            break
+            if(flag.value):
+                break
+            else:
+                continue
+
         with open(similar_file[0], encoding="utf-8") as csvfile:
             reader = csv.reader(csvfile)
             next(reader)
@@ -56,11 +60,12 @@ def files_deplication(src_dir = 'output_csv/', simhash_threshold = 3, jaccard_th
     # 获取所有jsonl文件
     file_path_list, file_nums = get_all_files(src_dir, ['.csv'], 'list')
     similar_file_queue = multiprocessing.Queue(200)
+    flag = multiprocessing.Value('b', False)
     for _ in range(n_process-1):
-        p = multiprocessing.Process(target=check_similar_file, args=(similar_file_queue, jaccard_thresold))
+        p = multiprocessing.Process(target=check_similar_file, args=(similar_file_queue, jaccard_thresold, flag))
         p.start()
 
-    deduplication(file_path_list, simhash_threshold, similar_file_queue)
+    deduplication(file_path_list, simhash_threshold, similar_file_queue, flag)
 
 
 if __name__ == '__main__':
@@ -72,8 +77,8 @@ if __name__ == '__main__':
     parser.add_argument('--simhash_threshold', type=int, default=3, help="指定simhash去重阈值，默认为3")
     # 添加可选参数，指定jaccard相似度阈值
     parser.add_argument('--jaccard_thresold', type=float, default=0.8, help="指定jaccard相似度阈值，默认为0.8")
-    # 添加可选参数，指定进程数，默认为1
-    parser.add_argument('--n_process', type=int, default=16, help="指定进程数，默认为13")
+    # 添加可选参数，指定进程数，默认为13
+    parser.add_argument('--n_process', type=int, default=13, help="指定进程数，默认为13")
     # 解析参数
     args = parser.parse_args()
     # 调用convert函数
