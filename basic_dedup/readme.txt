@@ -1,0 +1,8 @@
+write_meta_data_pkl.py
+把原始文件，不限文件内容格式，保存到pandas的表中
+添加方式为追加
+以二进制pkl的格式保存下来
+find_duplicates.py
+输入pkl文件，输出除了第一次出现以外完全重复的文件
+输出到duplicates.txt文件中，覆盖写
+把去重后的pkl覆盖到原来pkl文件

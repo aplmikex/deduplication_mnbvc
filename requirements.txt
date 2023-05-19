@@ -1,3 +1,4 @@
-charset-mnbvc==0.0.2
 jsonlines==3.1.0
 tqdm==4.64.1
+argparse==1.4.0
+simhash==2.1.2
