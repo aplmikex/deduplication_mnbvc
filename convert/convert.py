@@ -1,4 +1,6 @@
 import os, sys
+current_path = os.path.abspath(__file__)
+sys.path.append(os.path.dirname(os.path.dirname(current_path)))
 from multiprocessing import Process
 import multiprocessing
 import argparse
