@@ -9,10 +9,7 @@ import csv
 import hashlib
 
 def convert_jsonl_to_csv(src_dir, dst_dir):
-
-    # 如果输出目录不存在，则创建
-    if not os.path.exists(dst_dir):
-        os.mkdir(dst_dir)
+    os.makedirs(dst_dir, exist_ok=True)
 
     # 获取所有jsonl文件
     file_path_list, file_nums = get_all_files(src_dir, ['.jsonl'], 'list')

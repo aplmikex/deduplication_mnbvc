@@ -7,7 +7,6 @@ import logging
 import numbers
 import re
 import sys
-from itertools import groupby
 
 import numpy as np
 
@@ -38,6 +37,26 @@ else:
 def _hashfunc(x):
     return hashlib.md5(x).digest()
 
+def count_elements(features):
+
+    result = {}
+    current_key = None
+    count = 0
+
+    for feature in sorted(features):
+        if feature != current_key:
+            if current_key is not None:
+                result[current_key] = count
+            current_key = feature
+            count = 1
+        else:
+            count += 1
+
+    # 处理最后一个分组
+    if current_key is not None:
+        result[current_key] = count
+    
+    return result
 
 class Simhash(object):
     # Constants used in calculating simhash. Larger values will use more RAM.
@@ -103,7 +122,7 @@ class Simhash(object):
 
     def build_by_text(self, content):
         features = self._tokenize(content)
-        features = {k:sum(1 for _ in g) for k, g in groupby(sorted(features))}
+        features = count_elements(features)
         return self.build_by_features(features)
 
     def build_by_features(self, features):
