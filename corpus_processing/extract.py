@@ -20,7 +20,7 @@ def get_extension(file_path):
             filename = filename_1
     return filename, ''.join(extensions)
 
-def extract_archive(file_path, extract_path, file):
+def extract_archive(file_path, extract_path, file, password=None):
     filename, extension = get_extension(file)
     extract_succcessful = True
     try:
@@ -44,8 +44,12 @@ def extract_archive(file_path, extract_path, file):
                 with open(os.path.join(extract_path, filename), 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
         elif extension == '.rar':
-            with rarfile.RarFile(file_path, 'r') as rar:
-                rar.extractall(extract_path)
+            if password is None:
+                with rarfile.RarFile(file_path, 'r') as rar:
+                    rar.extractall(extract_path)
+            else:
+                with rarfile.RarFile(file_path, 'r', password=password) as rar:
+                    rar.extractall(extract_path)
         elif extension == '.gz':
             if not os.path.exists(extract_path):
                 os.mkdir(extract_path)
@@ -53,12 +57,20 @@ def extract_archive(file_path, extract_path, file):
             with gzip.open(file_path, 'rb') as f_in:
                 with open(os.path.join(extract_path, filename), 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
-        elif extension == '.zip':
-            with zipfile.ZipFile(file_path, 'r') as zip:
-                zip.extractall(extract_path)
+        elif extension == '.zip' or extension == '.exe':
+            if password is None:
+                with zipfile.ZipFile(file_path, 'r') as zip:
+                    zip.extractall(extract_path)
+            else:
+                with zipfile.ZipFile(file_path, 'r', pwd=password) as zip:
+                    zip.extractall(extract_path)
         elif extension == '.7z':
-            with py7zr.SevenZipFile(file_path, mode='r') as seven_zip:
-                seven_zip.extractall(extract_path)
+            if password is None:
+                with py7zr.SevenZipFile(file_path, mode='r') as seven_zip:
+                    seven_zip.extractall(extract_path)
+            else:
+                with py7zr.SevenZipFile(file_path, mode='r', password=password) as seven_zip:
+                    seven_zip.extractall(extract_path)
         else:
             print(f"Unsupported file format: {extension}")
             extract_succcessful = False
@@ -71,14 +83,26 @@ def extract_archive(file_path, extract_path, file):
     
     return extract_succcessful
 
-def traverse_directory(folder_path):
+
+def traverse_directory(folder_path, passwdords=None):
+    if not os.path.exists(folder_path):
+        print(f"{folder_path} does not exist!")
+        return
+    if not passwdords is None:
+        with open(passwdords, 'r') as f:
+            balsklist = f.readlines()
+        
+        passwdords = [x.strip() for x in balsklist]
+    else :
+        passwdords = []
+
 
     for root, dirs, files in os.walk(folder_path):
         extract_path_set = set(dirs)
 
         for file in files:
             # 判断文件是否为压缩包类型
-            if file.endswith(('.tar', '.tbz2', '.tgz', '.tar.bz2', '.tar.gz', '.tar.xz', '.tar.Z', '.bz2', '.rar', '.gz', '.zip', '.xz', '.7z')):
+            if file.endswith(('.tar', '.tbz2', '.tgz', '.tar.bz2', '.tar.gz', '.tar.xz', '.tar.Z', '.bz2', '.rar', '.gz', '.zip', '.xz', '.7z', '.exe')):
 
                 file_path = os.path.join(root, file)
                 # 把压缩包解压到的文件夹名
@@ -91,7 +115,15 @@ def traverse_directory(folder_path):
                             break
 
                 extract_path = os.path.join(root, extract_path)
+                
                 extract_succcessful = extract_archive(file_path, extract_path, file)
+                
+                if not extract_succcessful:
+                    for password in passwdords:
+                        extract_succcessful = extract_archive(file_path, extract_path, file, password=password)
+                        if extract_succcessful:
+                            break
+                
                 if extract_succcessful:
                     traverse_directory(extract_path)
                     extract_path_set.add(file.split('.')[0])
@@ -99,6 +131,7 @@ def traverse_directory(folder_path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--folder_path', type=str, required=True, help="压缩包路径")
+    parser.add_argument('--passwords_files', type=str, default=None, help="压缩包密码文件路径")
     args = parser.parse_args()
 
     traverse_directory(args.folder_path)
