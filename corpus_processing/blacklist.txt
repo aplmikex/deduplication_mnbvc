@@ -19,3 +19,11 @@ cdr
 wmf
 pcx
 dng
+avi
+mp4
+mov
+wmv
+flv
+mkv
+webm
+m4v
