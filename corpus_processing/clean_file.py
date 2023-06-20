@@ -15,8 +15,7 @@ def clean_file(folder_path, blacklist_file):
                 file_path = os.path.join(root, file)
                 filename, extension = os.path.splitext(file_path)
 
-                os.rename(file_path, filename + extension.lower())
-                file_path = filename + extension.lower()
+                extension = extension.lower()
 
                 # 扩展名带前面的.的，要多算一个
                 if extension == '' or len(extension) > 7:

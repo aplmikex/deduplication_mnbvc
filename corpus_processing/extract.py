@@ -50,7 +50,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                     paths = file.split('/')
                     if any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, file).encode()) > 4095:
                         print(f"File name too long: {os.path.join(extract_full_path, file)}")
-                        os.mkdir(os.path.join(extract_full_path, 'long_name'))
+                        os.makedirs(os.path.join(extract_full_path, 'long_name'), exist_ok=True)
                         length = min(255, 4096-len(os.path.join(extract_full_path, 'long_name').encode()))
                         new_name = file.encode()[:length//2-1].decode('utf-8', errors='ignore') +'_'+ file.encode()[1-length//2:].decode('utf-8', errors='ignore')
                         new_name = '_'.join(new_name.split('/'))
@@ -75,7 +75,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                     paths = file.split('/')
                     if any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, file).encode()) > 4095:
                         print(f"File name too long: {os.path.join(extract_full_path, file)}")
-                        os.mkdir(os.path.join(extract_full_path, 'long_name'))
+                        os.makedirs(os.path.join(extract_full_path, 'long_name'), exist_ok=True)
                         length = min(255, 4096-len(os.path.join(extract_full_path, 'long_name').encode()))
                         new_name = file.encode()[:length//2-1].decode('utf-8', errors='ignore') +'_'+ file.encode()[1-length//2:].decode('utf-8', errors='ignore')
                         new_name = '_'.join(new_name.split('/'))

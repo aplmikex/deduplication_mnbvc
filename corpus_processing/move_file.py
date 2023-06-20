@@ -33,6 +33,7 @@ def move_files(input_dir, output_dir, suffix, keywords:str):
                     first_create = False
                 source_file = os.path.join(root, file)
                 target_file = os.path.join(target_dir, file)
+                target_file = target_file[:len(target_file) - len(suffix)] + suffix
                 shutil.move(source_file, target_file)
 
 
