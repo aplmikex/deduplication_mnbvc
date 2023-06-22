@@ -141,7 +141,8 @@ def traverse_directory(folder_path, passwords=None):
                 
                 if not extract_succcessful:
                     for password in passwords:
-                        extract_succcessful = extract_archive(file_path, extract_full_path, file, password=password)
+                        print(f"Try password: {password}")
+                        extract_succcessful = extract_archive(file_path, extract_full_path, file, password=password.encode())
                         if extract_succcessful:
                             break
                 
