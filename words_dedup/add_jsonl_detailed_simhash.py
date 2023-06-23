@@ -1,12 +1,12 @@
 import argparse
 import jsonlines
-from utils import max_size, get_all_files
 import tqdm, os
 import tempfile
 import os, sys
 current_path = os.path.abspath(__file__)
 sys.path.append(os.path.dirname(os.path.dirname(current_path)))
 import utils.customSimhash as customSimhash
+from utils.utils import max_size, get_all_files
 import multiprocessing
 
 from cityhash import CityHash64
