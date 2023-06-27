@@ -28,14 +28,16 @@ def move_files(input_dir, output_dir, suffix, keywords:str):
                     in_keywords = False
                     break
             if file.lower().endswith(suffix) and in_keywords:
-                if first_create:
-                    os.makedirs(target_dir, exist_ok=True)
-                    first_create = False
-                source_file = os.path.join(root, file)
-                target_file = os.path.join(target_dir, file)
-                target_file = target_file[:len(target_file) - len(suffix)] + suffix
-                shutil.move(source_file, target_file)
-
+                try:
+                    if first_create:
+                        os.makedirs(target_dir, exist_ok=True)
+                        first_create = False
+                    source_file = os.path.join(root, file)
+                    target_file = os.path.join(target_dir, file)
+                    target_file = target_file[:len(target_file) - len(suffix)] + suffix
+                    shutil.move(source_file, target_file)
+                except Exception as e:
+                    print(f"移动文件时出现异常: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
