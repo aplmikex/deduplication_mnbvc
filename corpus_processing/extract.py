@@ -48,7 +48,20 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                 rar.setpassword(password)
                 for file in rar.namelist():
                     paths = file.split('/')
-                    if any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, file).encode()) > 4095:
+                    file_name = paths[-1]
+                    if len(file_name.encode()) > 255 and len(os.path.join(extract_full_path, file).encode()) < 4095:
+                        print(f"File name too long: {os.path.join(extract_full_path, file)}")
+                        basename, extensions =  get_extension(file_name)
+                        basename = basename.encode()[:255-len(extensions.encode())].decode('utf-8', errors='ignore')
+                        new_name = basename + extensions
+                        os.makedirs(file[:-len(file_name)], exist_ok=True)
+                        with rar.open(file, 'r') as f_in:
+                            data = f_in.read()
+                            with open(os.path.join(extract_full_path, file[:-len(file_name)], new_name), 'wb') as f_out:
+                                f_out.write(data)
+                        print(f"File extract to: {os.path.join(extract_full_path, file[:-len(file_name)], new_name)}")
+                    
+                    elif any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, file).encode()) > 4095:
                         print(f"File name too long: {os.path.join(extract_full_path, file)}")
                         os.makedirs(os.path.join(extract_full_path, 'long_name'), exist_ok=True)
                         length = min(255, 4096-len(os.path.join(extract_full_path, 'long_name').encode()))
@@ -73,7 +86,20 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                 zip.setpassword(password)
                 for file in zip.namelist():
                     paths = file.split('/')
-                    if any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, file).encode()) > 4095:
+                    file_name = paths[-1]
+                    if len(file_name.encode()) > 255 and len(os.path.join(extract_full_path, file).encode()) < 4095:
+                        print(f"File name too long: {os.path.join(extract_full_path, file)}")
+                        basename, extensions =  get_extension(file_name)
+                        basename = basename.encode()[:255-len(extensions.encode())].decode('utf-8', errors='ignore')
+                        new_name = basename + extensions
+                        os.makedirs(file[:-len(file_name)], exist_ok=True)
+                        with zip.open(file, 'r') as f_in:
+                            data = f_in.read()
+                            with open(os.path.join(extract_full_path, file[:-len(file_name)], new_name), 'wb') as f_out:
+                                f_out.write(data)
+                        print(f"File extract to: {os.path.join(extract_full_path, file[:-len(file_name)], new_name)}")
+
+                    elif any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, file).encode()) > 4095:
                         print(f"File name too long: {os.path.join(extract_full_path, file)}")
                         os.makedirs(os.path.join(extract_full_path, 'long_name'), exist_ok=True)
                         length = min(255, 4096-len(os.path.join(extract_full_path, 'long_name').encode()))
@@ -125,9 +151,6 @@ def traverse_directory(folder_path, passwords=None):
                 file_path = os.path.join(root, file)
                 # 把压缩包解压到的文件夹名
                 extract_path = file.split('.')[0]
-                # 如果文件名太长，截断
-                if len(extract_path.encode()) > 240:
-                    extract_path = extract_path.encode()[:240].decode('utf-8', errors='ignore')
 
                 if extract_path in extract_path_set:
                     for i in range(1, 10000):
