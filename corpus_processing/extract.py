@@ -1,4 +1,4 @@
-import os
+import os, hashlib
 import argparse
 import shutil
 import tarfile
@@ -52,7 +52,8 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                     if len(file_name.encode()) > 255 and len(os.path.join(extract_full_path, file).encode()) < 4095:
                         print(f"File name too long: {os.path.join(extract_full_path, file)}")
                         basename, extensions =  get_extension(file_name)
-                        basename = basename.encode()[:255-len(extensions.encode())].decode('utf-8', errors='ignore')
+                        length = (255-len(extensions.encode())-8)//2
+                        basename = basename.encode()[:length].decode('utf-8', errors='ignore')+hashlib.md5(file_name.encode()).hexdigest()[:8]+basename.encode()[-length:].decode('utf-8', errors='ignore')
                         new_name = basename + extensions
                         os.makedirs(file[:-len(file_name)], exist_ok=True)
                         with rar.open(file, 'r') as f_in:
@@ -90,7 +91,8 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                     if len(file_name.encode()) > 255 and len(os.path.join(extract_full_path, file).encode()) < 4095:
                         print(f"File name too long: {os.path.join(extract_full_path, file)}")
                         basename, extensions =  get_extension(file_name)
-                        basename = basename.encode()[:255-len(extensions.encode())].decode('utf-8', errors='ignore')
+                        length = (255-len(extensions.encode())-8)//2
+                        basename = basename.encode()[:length].decode('utf-8', errors='ignore')+hashlib.md5(file_name.encode()).hexdigest()[:8]+basename.encode()[-length:].decode('utf-8', errors='ignore')
                         new_name = basename + extensions
                         os.makedirs(file[:-len(file_name)], exist_ok=True)
                         with zip.open(file, 'r') as f_in:
