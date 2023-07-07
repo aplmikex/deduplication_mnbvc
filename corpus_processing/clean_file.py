@@ -20,11 +20,9 @@ def clean_file(folder_path, blacklist_file):
                 # 扩展名带前面的.的，要多算一个
                 if extension == '' or len(extension) > 7:
                     f.write(file_path+'\n')
-
-                if extension[1:] in balsklist:
+                elif extension[1:] in balsklist:
                     f.write(file_path+'\n')
-
-                if not all(ord(c) < 128 for c in extension):
+                elif not all(ord(c) < 128 for c in extension):
                     f.write(file_path+'\n')
 
             
