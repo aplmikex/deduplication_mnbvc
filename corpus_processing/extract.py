@@ -7,6 +7,10 @@ import bz2
 import gzip
 import rarfile
 import py7zr
+import os, sys
+current_path = os.path.abspath(__file__)
+sys.path.append(os.path.dirname(os.path.dirname(current_path)))
+from charset_mnbvc.charset_mnbvc import api
 
 def get_extension(file_path):
     filename, extension = os.path.splitext(file_path)
@@ -19,6 +23,28 @@ def get_extension(file_path):
             extensions.insert(0, extension)
             filename = filename_1
     return filename, ''.join(extensions)
+
+def check_long_name(extract_full_path, zip_file_name):
+    paths = zip_file_name.split('/')
+    file_name = paths[-1]
+    if len(file_name.encode()) > 255 and len(os.path.join(extract_full_path, zip_file_name).encode()) < 4095:
+        print(f"File name too long: \n{os.path.join(extract_full_path, zip_file_name)} \n")
+        basename, extensions =  get_extension(file_name)
+        length = (255-len(extensions.encode())-8)//2
+        basename = basename.encode()[:length].decode('utf-8', errors='ignore')+hashlib.md5(file_name.encode()).hexdigest()[:8]+basename.encode()[-length:].decode('utf-8', errors='ignore')
+        new_name = basename + extensions
+        return os.path.join(extract_full_path, '/'.join(paths[:-1]), new_name)
+    elif any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, zip_file_name).encode()) > 4095:
+        print(f"File name too long: \n {os.path.join(extract_full_path, zip_file_name)} \n")
+
+        length = min(255, 4096-len(os.path.join(extract_full_path, 'long_name').encode()))-8
+
+        new_name = zip_file_name.encode()[:length//2-1].decode('utf-8', errors='ignore') +hashlib.md5(zip_file_name.encode()).hexdigest()[:8]+ zip_file_name.encode()[1-length//2:].decode('utf-8', errors='ignore')
+        new_name = '_'.join(new_name.split('/'))
+        return os.path.join(extract_full_path, 'long_name', new_name)
+
+    return os.path.join(extract_full_path, zip_file_name)
+
 
 def extract_archive(file_path, extract_full_path, file, password=None):
 
@@ -47,34 +73,19 @@ def extract_archive(file_path, extract_full_path, file, password=None):
             with rarfile.RarFile(file_path, 'r') as rar:
                 rar.setpassword(password)
                 for file in rar.namelist():
-                    paths = file.split('/')
-                    file_name = paths[-1]
-                    if len(file_name.encode()) > 255 and len(os.path.join(extract_full_path, file).encode()) < 4095:
-                        print(f"File name too long: {os.path.join(extract_full_path, file)}")
-                        basename, extensions =  get_extension(file_name)
-                        length = (255-len(extensions.encode())-8)//2
-                        basename = basename.encode()[:length].decode('utf-8', errors='ignore')+hashlib.md5(file_name.encode()).hexdigest()[:8]+basename.encode()[-length:].decode('utf-8', errors='ignore')
-                        new_name = basename + extensions
-                        os.makedirs(file[:-len(file_name)], exist_ok=True)
-                        with rar.open(file, 'r') as f_in:
-                            data = f_in.read()
-                            with open(os.path.join(extract_full_path, file[:-len(file_name)], new_name), 'wb') as f_out:
-                                f_out.write(data)
-                        print(f"File extract to: {os.path.join(extract_full_path, file[:-len(file_name)], new_name)}")
+                    if file.endswith('/'):
+                        continue
+                    new_file_path = check_long_name(extract_full_path, file)
+                    basename = os.path.dirname(new_file_path)
+
+                    os.makedirs(basename, exist_ok=True)
+                    with rar.open(file, 'r') as f_in:
+                        data = f_in.read()
+                        with open(new_file_path, 'wb') as f_out:
+                            f_out.write(data)
+                    print(f"File extract to: {new_file_path}")
                     
-                    elif any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, file).encode()) > 4095:
-                        print(f"File name too long: {os.path.join(extract_full_path, file)}")
-                        os.makedirs(os.path.join(extract_full_path, 'long_name'), exist_ok=True)
-                        length = min(255, 4096-len(os.path.join(extract_full_path, 'long_name').encode()))
-                        new_name = file.encode()[:length//2-1].decode('utf-8', errors='ignore') +'_'+ file.encode()[1-length//2:].decode('utf-8', errors='ignore')
-                        new_name = '_'.join(new_name.split('/'))
-                        with rar.open(file, 'r') as f_in:
-                            data = f_in.read()
-                            with open(os.path.join(extract_full_path, 'long_name', new_name), 'wb') as f_out:
-                                f_out.write(data)
-                        print(f"File extract to: {os.path.join(extract_full_path, 'long_name', new_name)}")
-                    else:
-                        rar.extract(file, extract_full_path)
+
         elif extension == '.gz':
             if not os.path.exists(extract_full_path):
                 os.mkdir(extract_full_path)
@@ -86,34 +97,33 @@ def extract_archive(file_path, extract_full_path, file, password=None):
             with zipfile.ZipFile(file_path, 'r') as zip:
                 zip.setpassword(password)
                 for file in zip.namelist():
-                    paths = file.split('/')
-                    file_name = paths[-1]
-                    if len(file_name.encode()) > 255 and len(os.path.join(extract_full_path, file).encode()) < 4095:
-                        print(f"File name too long: {os.path.join(extract_full_path, file)}")
-                        basename, extensions =  get_extension(file_name)
-                        length = (255-len(extensions.encode())-8)//2
-                        basename = basename.encode()[:length].decode('utf-8', errors='ignore')+hashlib.md5(file_name.encode()).hexdigest()[:8]+basename.encode()[-length:].decode('utf-8', errors='ignore')
-                        new_name = basename + extensions
-                        os.makedirs(os.path.join(extract_full_path, file[:-len(file_name)]), exist_ok=True)
-                        with zip.open(file, 'r') as f_in:
-                            data = f_in.read()
-                            with open(os.path.join(extract_full_path, file[:-len(file_name)], new_name), 'wb') as f_out:
-                                f_out.write(data)
-                        print(f"File extract to: {os.path.join(extract_full_path, file[:-len(file_name)], new_name)}")
+                    if file.endswith('/'):
+                        continue
+                    
+                    try:
+                        coding_name = api.from_data(data=file.encode('cp437'), mode=2)
+                        if coding_name == None:
+                            coding_name = 'gb18030'
 
-                    elif any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, file).encode()) > 4095:
-                        print(f"File name too long: {os.path.join(extract_full_path, file)}")
-                        os.makedirs(os.path.join(extract_full_path, 'long_name'), exist_ok=True)
-                        length = min(255, 4096-len(os.path.join(extract_full_path, 'long_name').encode()))
-                        new_name = file.encode()[:length//2-1].decode('utf-8', errors='ignore') +'_'+ file.encode()[1-length//2:].decode('utf-8', errors='ignore')
-                        new_name = '_'.join(new_name.split('/'))
-                        with zip.open(file, 'r') as f_in:
-                            data = f_in.read()
-                            with open(os.path.join(extract_full_path, 'long_name', new_name), 'wb') as f_out:
-                                f_out.write(data)
-                        print(f"File extract to: {os.path.join(extract_full_path, 'long_name', new_name)}")
-                    else:
-                        zip.extract(file, extract_full_path)
+                    except:
+                        coding_name = 'utf-8'
+
+                    utf8_name = api.convert_encoding(
+                        source_data=file.encode('cp437'),
+                        source_encoding=coding_name,
+                        target_encoding="utf-8",
+                    )
+
+                    new_file_path = check_long_name(extract_full_path, utf8_name)
+                    basename = os.path.dirname(new_file_path)
+
+                    os.makedirs(basename, exist_ok=True)
+                    with zip.open(file, 'r') as f_in:
+                        data = f_in.read()
+                        with open(new_file_path, 'wb') as f_out:
+                            f_out.write(data)
+                    print(f"File extract to: {new_file_path}")
+
         elif extension == '.7z':
             with py7zr.SevenZipFile(file_path, mode='r', password=password) as seven_zip:
                 seven_zip.extractall(extract_full_path)
@@ -126,7 +136,9 @@ def extract_archive(file_path, extract_full_path, file, password=None):
         extract_succcessful = False
     
     if extract_succcessful:
-        os.remove(file_path)
+        with open('tobereomve.txt', 'w') as f:
+            f.write(file_path+'\n')
+
     
     return extract_succcessful
 
