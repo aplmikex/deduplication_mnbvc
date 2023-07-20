@@ -1,0 +1,3 @@
+[submodule "charset_mnbvc"]
+	path = charset_mnbvc
+	url = https://github.com/alanshi/charset_mnbvc
