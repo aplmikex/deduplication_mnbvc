@@ -94,7 +94,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                         length = (255-len(extensions.encode())-8)//2
                         basename = basename.encode()[:length].decode('utf-8', errors='ignore')+hashlib.md5(file_name.encode()).hexdigest()[:8]+basename.encode()[-length:].decode('utf-8', errors='ignore')
                         new_name = basename + extensions
-                        os.makedirs(file[:-len(file_name)], exist_ok=True)
+                        os.makedirs(os.path.join(extract_full_path, file[:-len(file_name)]), exist_ok=True)
                         with zip.open(file, 'r') as f_in:
                             data = f_in.read()
                             with open(os.path.join(extract_full_path, file[:-len(file_name)], new_name), 'wb') as f_out:
