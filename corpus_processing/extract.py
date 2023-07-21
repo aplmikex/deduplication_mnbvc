@@ -24,6 +24,19 @@ def get_extension(file_path):
             filename = filename_1
     return filename, ''.join(extensions)
 
+def test_encode(file_path : bytes):
+    try:
+        bytes.decode(file_path, encoding='utf-8')
+        return 'utf-8'
+    except:
+        pass
+    try:
+        bytes.decode(file_path, encoding='gb18030')
+        return 'gb18030'
+    except:
+        pass
+    return None
+
 def check_long_name(extract_full_path, zip_file_name):
     paths = zip_file_name.split('/')
     file_name = paths[-1]
@@ -101,12 +114,14 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                         continue
                     
                     try:
-                        coding_name = api.from_data(data=file.encode('cp437'), mode=2)
-                        if coding_name == None:
-                            coding_name = 'gb18030'
-
+                        file_bytes = file.encode('cp437')
                     except:
-                        coding_name = 'utf-8'
+                        file_bytes = file.encode('utf-8')
+
+                    coding_name = test_encode(file_bytes)
+
+                    if coding_name is None:
+                        coding_name = api.from_data(file_bytes, mode=2)
 
                     utf8_name = api.convert_encoding(
                         source_data=file.encode('cp437'),
@@ -136,7 +151,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
         extract_succcessful = False
     
     if extract_succcessful:
-        with open('tobereomve.txt', 'w') as f:
+        with open('tobereomve.txt', 'a') as f:
             f.write(file_path+'\n')
 
     
