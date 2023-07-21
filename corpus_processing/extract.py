@@ -186,6 +186,9 @@ def traverse_directory(folder_path, passwords=None):
                         if f"{extract_path}_{i}" not in extract_path_set:
                             extract_path = f"{extract_path}_{i}"
                             break
+                        if i == 9999:
+                            print(f"Too many files in {root}")
+                            raise Exception(f"Too many files in {root}")
 
                 extract_full_path = os.path.join(root, extract_path)
                 
@@ -200,7 +203,9 @@ def traverse_directory(folder_path, passwords=None):
                 
                 if extract_succcessful:
                     traverse_directory(extract_full_path)
-                    extract_path_set.add(file.split('.')[0])
+                
+                extract_path_set.add(extract_path)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
