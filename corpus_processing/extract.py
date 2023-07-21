@@ -124,7 +124,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                         coding_name = api.from_data(file_bytes, mode=2)
 
                     utf8_name = api.convert_encoding(
-                        source_data=file.encode('cp437'),
+                        source_data=file_bytes,
                         source_encoding=coding_name,
                         target_encoding="utf-8",
                     )
