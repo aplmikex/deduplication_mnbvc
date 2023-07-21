@@ -96,7 +96,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                         data = f_in.read()
                         with open(new_file_path, 'wb') as f_out:
                             f_out.write(data)
-                    print(f"File extract to: {new_file_path}")
+                    # print(f"File extract to: {new_file_path}")
                     
 
         elif extension == '.gz':
@@ -137,7 +137,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                         data = f_in.read()
                         with open(new_file_path, 'wb') as f_out:
                             f_out.write(data)
-                    print(f"File extract to: {new_file_path}")
+                    # print(f"File extract to: {new_file_path}")
 
         elif extension == '.7z':
             with py7zr.SevenZipFile(file_path, mode='r', password=password) as seven_zip:
@@ -179,7 +179,7 @@ def traverse_directory(folder_path, passwords=None):
 
                 file_path = os.path.join(root, file)
                 # 把压缩包解压到的文件夹名
-                extract_path = file.split('.')[0]
+                extract_path, _ = get_extension(file)
 
                 if extract_path in extract_path_set:
                     for i in range(1, 10000):
