@@ -35,7 +35,7 @@ def test_encode(file_path : bytes):
         pass
     return None
 
-def check_long_name(extract_full_path, zip_file_name):
+def check_long_name(extract_full_path, zip_file_name):# longname返回true
     paths = zip_file_name.split('/')
     file_name = paths[-1]
     if len(file_name.encode()) > 255 and len(os.path.join(extract_full_path, zip_file_name).encode()) < 4095:
@@ -44,7 +44,7 @@ def check_long_name(extract_full_path, zip_file_name):
         length = (255-len(extensions.encode())-8)//2
         basename = basename.encode()[:length].decode('utf-8', errors='ignore')+hashlib.md5(file_name.encode()).hexdigest()[:8]+basename.encode()[-length:].decode('utf-8', errors='ignore')
         new_name = basename + extensions
-        return os.path.join(extract_full_path, '/'.join(paths[:-1]), new_name)
+        return os.path.join(extract_full_path, '/'.join(paths[:-1]), new_name), True
     elif any(len(path.encode()) > 255 for path in paths) or len(os.path.join(extract_full_path, zip_file_name).encode()) > 4095:
         print(f"File name too long: \n {os.path.join(extract_full_path, zip_file_name)} \n")
 
@@ -52,9 +52,9 @@ def check_long_name(extract_full_path, zip_file_name):
 
         new_name = zip_file_name.encode()[:length//2-1].decode('utf-8', errors='ignore') +hashlib.md5(zip_file_name.encode()).hexdigest()[:8]+ zip_file_name.encode()[1-length//2:].decode('utf-8', errors='ignore')
         new_name = '_'.join(new_name.split('/'))
-        return os.path.join(extract_full_path, 'long_name', new_name)
+        return os.path.join(extract_full_path, 'long_name', new_name), True
 
-    return os.path.join(extract_full_path, zip_file_name)
+    return os.path.join(extract_full_path, zip_file_name), False
 
 
 def extract_archive(file_path, extract_full_path, file, password=None):
@@ -83,19 +83,32 @@ def extract_archive(file_path, extract_full_path, file, password=None):
         elif extension == '.rar':
             with rarfile.RarFile(file_path, 'r') as rar:
                 rar.setpassword(password)
+
+                problem = False
+
                 for file in rar.namelist():
                     if file.endswith('/'):
                         continue
-                    new_file_path = check_long_name(extract_full_path, file)
-                    basename = os.path.dirname(new_file_path)
+                    new_file_path, if_long_name = check_long_name(extract_full_path, file)
+                    if if_long_name:
+                        problem = True
+                        break
 
-                    os.makedirs(basename, exist_ok=True)
-                    with rar.open(file, 'r') as f_in:
-                        data = f_in.read()
-                        with open(new_file_path, 'wb') as f_out:
-                            f_out.write(data)
-                    # print(f"File extract to: {new_file_path}")
-                    
+                if problem:
+                    for file in rar.namelist():
+                        if file.endswith('/'):
+                            continue
+                        new_file_path, _ = check_long_name(extract_full_path, file)
+                        basename = os.path.dirname(new_file_path)
+
+                        os.makedirs(basename, exist_ok=True)
+                        with rar.open(file, 'r') as f_in:
+                            data = f_in.read()
+                            with open(new_file_path, 'wb') as f_out:
+                                f_out.write(data)
+                        # print(f"File extract to: {new_file_path}")
+                else:
+                    rar.extractall(extract_full_path)
 
         elif extension == '.gz':
             if not os.path.exists(extract_full_path):
@@ -107,12 +120,16 @@ def extract_archive(file_path, extract_full_path, file, password=None):
         elif extension in ('.zip', '.exe'):
             with zipfile.ZipFile(file_path, 'r') as zip:
                 zip.setpassword(password)
+                problem = False
+
                 for file in zip.namelist():
                     if file.endswith('/'):
                         continue
                     
                     try:
                         file_bytes = file.encode('cp437')
+                        problem = True
+                        break
                     except:
                         file_bytes = file.encode('utf-8')
 
@@ -127,15 +144,44 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                         target_encoding="utf-8",
                     )
 
-                    new_file_path = check_long_name(extract_full_path, utf8_name)
-                    basename = os.path.dirname(new_file_path)
+                    new_file_path, if_long_name = check_long_name(extract_full_path, utf8_name)
+                    if if_long_name:
+                        problem = True
+                        break
 
-                    os.makedirs(basename, exist_ok=True)
-                    with zip.open(file, 'r') as f_in:
-                        data = f_in.read()
-                        with open(new_file_path, 'wb') as f_out:
-                            f_out.write(data)
-                    # print(f"File extract to: {new_file_path}")
+
+                if problem:
+                    for file in zip.namelist():
+                        if file.endswith('/'):
+                            continue
+                        
+                        try:
+                            file_bytes = file.encode('cp437')
+                        except:
+                            file_bytes = file.encode('utf-8')
+
+                        coding_name = test_encode(file_bytes)
+
+                        if coding_name is None:
+                            coding_name = api.from_data(file_bytes, mode=2)
+
+                        utf8_name = api.convert_encoding(
+                            source_data=file_bytes,
+                            source_encoding=coding_name,
+                            target_encoding="utf-8",
+                        )
+
+                        new_file_path, _ = check_long_name(extract_full_path, utf8_name)
+                        basename = os.path.dirname(new_file_path)
+
+                        os.makedirs(basename, exist_ok=True)
+                        with zip.open(file, 'r') as f_in:
+                            data = f_in.read()
+                            with open(new_file_path, 'wb') as f_out:
+                                f_out.write(data)
+                        # print(f"File extract to: {new_file_path}")
+                else:
+                    zip.extractall(extract_full_path)
 
         elif extension == '.7z':
             with py7zr.SevenZipFile(file_path, mode='r', password=password) as seven_zip:
