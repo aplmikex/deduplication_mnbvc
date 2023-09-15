@@ -3,3 +3,5 @@ tqdm==4.64.1
 argparse==1.4.0
 simhash==2.1.2
 cityhash
+better-zipfile>=0.0.3
+charset-mnbvc>=0.0.12

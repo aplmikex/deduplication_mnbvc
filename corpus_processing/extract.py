@@ -9,6 +9,7 @@ import rarfile
 import py7zr
 import os, sys
 from charset_mnbvc import api
+from better_zipfile import fixcharset_zipfile
 
 def get_extension(file_path):
     filename, extension = os.path.splitext(file_path)
@@ -22,18 +23,6 @@ def get_extension(file_path):
             filename = filename_1
     return filename, ''.join(extensions)
 
-def test_encode(file_path : bytes):
-    try:
-        bytes.decode(file_path, encoding='utf-8')
-        return 'utf-8'
-    except:
-        pass
-    try:
-        bytes.decode(file_path, encoding='gb18030')
-        return 'gb18030'
-    except:
-        pass
-    return None
 
 def check_long_name(extract_full_path, zip_file_name):# longname返回true
     paths = zip_file_name.split('/')
@@ -59,7 +48,7 @@ def check_long_name(extract_full_path, zip_file_name):# longname返回true
 
 def extract_zip(file, password, extract_full_path):
 
-    with zipfile.ZipFile(file, 'r') as zip:
+    with fixcharset_zipfile.ZipFile(file, 'r') as zip:
         zip.setpassword(password)
 
         auto_filelists = []
@@ -69,27 +58,7 @@ def extract_zip(file, password, extract_full_path):
             if file.endswith('/'):
                 continue
 
-
-            coding_name = 'utf-8'
-
-            try:
-                file_bytes = file.encode('cp437')
-                problem = True
-            except:
-                file_bytes = file.encode('utf-8')
-            
-            if problem:
-                coding_name = test_encode(file_bytes)
-                if coding_name is None:
-                    coding_name = api.from_data(file_bytes, mode=2)
-
-            utf8_name = api.convert_encoding(
-                source_data=file_bytes,
-                source_encoding=coding_name,
-                target_encoding="utf-8",
-            )
-
-            new_file_path, if_long_name = check_long_name(extract_full_path, utf8_name)
+            new_file_path, if_long_name = check_long_name(extract_full_path, file)
             if if_long_name:
                 problem = True
             
@@ -170,22 +139,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                 with open(os.path.join(extract_full_path, filename), 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
         elif extension in ('.zip', '.exe'):
-            try:
-                extract_zip(file_path, password, extract_full_path)
-            except zipfile.BadZipfile as error:
-                if "Bad magic number for central directory" in str(error):
-                    fp = open(file_path, 'rb')
-
-                    data = fp.read()
-                    index = data.find(b'PK\005\006') + 22
-                    fp.seek(index)
-
-                    fp.close()
-
-                    data = io.BytesIO(data[:index])
-                    extract_zip(data, password, extract_full_path)
-                else:
-                    raise
+            extract_zip(file_path, password, extract_full_path)
 
         elif extension == '.7z':
             with py7zr.SevenZipFile(file_path, mode='r', password=password) as seven_zip:
