@@ -23,6 +23,18 @@ def get_extension(file_path):
             filename = filename_1
     return filename, ''.join(extensions)
 
+def test_encode(file_path : bytes):
+    try:
+        bytes.decode(file_path, encoding='utf-8')
+        return 'utf-8'
+    except:
+        pass
+    try:
+        bytes.decode(file_path, encoding='gb18030')
+        return 'gb18030'
+    except:
+        pass
+    return None
 
 def check_long_name(extract_full_path, zip_file_name):# longname返回true
     paths = zip_file_name.split('/')
@@ -47,34 +59,53 @@ def check_long_name(extract_full_path, zip_file_name):# longname返回true
 
 
 def extract_zip(file, password, extract_full_path):
+    try:
+        with zipfile.ZipFile(file, 'r') as zip:
+            zip.setpassword(password)
+            for file_info in zip.infolist():
+                file =  file_info.filename
+                if file.endswith('/') or file.startswith('__MACOSX') :
+                    continue
+                
+                try:
+                    file_bytes = file.encode('cp437')
+                except:
+                    file_bytes = file.encode('utf-8')
 
-    with fixcharset_zipfile.ZipFile(file, 'r') as zip:
-        zip.setpassword(password)
+                coding_name = test_encode(file_bytes)
 
-        auto_filelists = []
+                if coding_name is None:
+                    coding_name = api.from_data(file_bytes, mode=2)
 
-        for file in zip.namelist():
-            problem = False
-            if file.endswith('/'):
-                continue
-
-            new_file_path, if_long_name = check_long_name(extract_full_path, file)
-            if if_long_name:
-                problem = True
-            
-            if problem:
+                utf8_name = api.convert_encoding(
+                    source_data=file_bytes,
+                    source_encoding=coding_name,
+                    target_encoding="utf-8",
+                )
+                new_string = utf8_name.split('/', 1)[1]
+                new_file_path ,_ = check_long_name(extract_full_path, new_string)
                 basename = os.path.dirname(new_file_path)
+
                 os.makedirs(basename, exist_ok=True)
-                with zip.open(file, 'r') as f_in:
-                    data = f_in.read()
-                    with open(new_file_path, 'wb') as f_out:
-                        f_out.write(data)
-            else:
-                auto_filelists.append(file)
-        
-        zip.extractall(extract_full_path, auto_filelists)
-
-
+                # 复制文件
+                source = zip.open(file_info)
+                with open(new_file_path, "wb") as target:
+                    shutil.copyfileobj(source, target)
+        print("解压缩完成")
+        extract_succcessful = True
+    except zipfile.BadZipFile:
+        print("错误：无效的ZIP文件。")
+        extract_succcessful = False
+    except FileNotFoundError:
+        print("错误：文件未找到。")
+        extract_succcessful = False
+    except IOError as e:
+        print(f"输入/输出错误：{e}")
+        extract_succcessful = False
+    except Exception as e:
+        print(f"发生了一个未知错误：{e}")
+        extract_succcessful = False
+    return extract_succcessful
 
 
 
@@ -139,7 +170,7 @@ def extract_archive(file_path, extract_full_path, file, password=None):
                 with open(os.path.join(extract_full_path, filename), 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
         elif extension in ('.zip', '.exe'):
-            extract_zip(file_path, password, extract_full_path)
+            extract_succcessful = extract_zip(file_path, password, extract_full_path)
 
         elif extension == '.7z':
             with py7zr.SevenZipFile(file_path, mode='r', password=password) as seven_zip:
