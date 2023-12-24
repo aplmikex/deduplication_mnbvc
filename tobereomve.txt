@@ -287,3 +287,6 @@
 /Volumes/Elements/AITest/test/1256/20221224.zip
 /Volumes/Elements/AITest/test/1256/20221224.zip
 /Volumes/Elements/AITest/test/1256/._20221224.zip
+/Volumes/Elements/AITest/test/11/123.zip
+/Volumes/Elements/AITest/test/11/123/454.zip
+/Volumes/Elements/AITest/test/11/123/454的副本.exe
